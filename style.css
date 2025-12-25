@@ -1,0 +1,53 @@
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        background-color: #f4f4f9;
+        color: #333;
+        margin: 0;
+        padding: 20px;
+        text-align: center;
+    }
+    header {
+        margin-bottom: 30px;
+    }
+    h1 {
+        color: #0056b3;
+    }
+    .botao {
+        background-color: #007bff;
+        color: white;
+        padding: 15px 30px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 1.2em;
+        font-weight: bold;
+        display: inline-block;
+        transition: background-color 0.3s;
+    }
+    .botao:hover {
+        background-color: #0056b3;
+    }
+    #resultado-area {
+        margin-top: 30px;
+        padding: 20px;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        min-height: 100px;
+    }
+    #modelo-identificado {
+        color: #333;
+    }
+    #codigos-container {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 25px;
+    }
+    .codigo-item {
+        text-align: center;
+    }
+    .codigo-item p {
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
