@@ -10,7 +10,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    const URL = './';
+    const URL = 'https://itinhocg.github.io/identificador-de-havaianas/';
     let model;
     let catalogo = {};
 
