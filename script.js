@@ -1,10 +1,10 @@
     const firebaseConfig = {
-      apiKey: "AIzaSyCTLSurHwYlWVS1XZlCi6b0UCdWXYB73hU",
-      authDomain: "identificador-havaianas.firebaseapp.com",
-      projectId: "identificador-havaianas",
-      storageBucket: "identificador-havaianas.appspot.com",
-      messagingSenderId: "18134290302",
-      appId: "1:18134290302:web:58a9b6e0e9020ab33fed2f"
+    apiKey: "AIzaSyBE3zKmHdr0dXKbKb67-AascSf4aKhI_NU",
+    authDomain: "identificador-de-havaianas.firebaseapp.com",
+    projectId: "identificador-de-havaianas",
+    storageBucket: "identificador-de-havaianas.firebasestorage.app",
+    messagingSenderId: "599447753010",
+    appId: "1:599447753010:web:4ae65ee4e1eeb76e13072b"
     };
 
     firebase.initializeApp(firebaseConfig);
