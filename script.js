@@ -99,4 +99,4 @@ function exibirCodigos(nomeDoModelo) {
     }
 }
 
-iniciar();
+    document.addEventListener('DOMContentLoaded', iniciar);
