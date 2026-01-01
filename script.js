@@ -10,7 +10,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-// ALTERAÇÃO CRUCIAL: Renomeamos a variável para não conflitar com o objeto URL do navegador
+// A MUDANÇA MAIS IMPORTANTE: Renomeamos a variável para não conflitar com o objeto URL do navegador.
 const modelURLBase = 'https://itinhocg.github.io/identificador-de-havaianas/';
 let model;
 let catalogo = {};
@@ -21,7 +21,6 @@ const codigosContainerEl = document.getElementById('codigos-container');
 
 async function carregarCatalogoDoFirebase() {
     modeloIdentificadoEl.innerText = 'Carregando catálogo de produtos...';
-    console.log("Iniciando busca no Firebase...");
     try {
         const snapshot = await db.collection('modelos').get();
         if (snapshot.empty) {
@@ -32,9 +31,7 @@ async function carregarCatalogoDoFirebase() {
             const modelo = doc.data();
             catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
         });
-        console.log("CATÁLOGO CARREGADO DO FIREBASE:", catalogo);
-        console.log("CHAVES DO CATÁLOGO ENCONTRADAS:", Object.keys(catalogo));
-        modeloIdentificadoEl.innerText = '';
+        modeloIdentificadoEl.innerText = ''; // Limpa a mensagem de carregamento
     } catch (error) {
         console.error("ERRO CRÍTICO AO BUSCAR CATÁLOGO: ", error);
         modeloIdentificadoEl.innerText = 'Falha ao conectar com o banco de dados.';
@@ -43,6 +40,7 @@ async function carregarCatalogoDoFirebase() {
 
 async function iniciar() {
     await carregarCatalogoDoFirebase();
+    // Só tenta carregar o modelo se o catálogo foi carregado com sucesso
     if (Object.keys(catalogo).length > 0) {
         try {
             const modelURL = modelURLBase + 'model.json';
@@ -57,23 +55,35 @@ async function iniciar() {
 }
 
 uploadInput.addEventListener('change', async (event) => {
-    if (!model) return alert("O modelo de IA ainda não foi carregado. Aguarde.");
+    if (!model) {
+        return alert("O modelo de IA ainda não foi carregado. Verifique o console para erros (F12).");
+    }
     modeloIdentificadoEl.innerText = 'Analisando...';
     codigosContainerEl.innerHTML = '';
     const file = event.target.files[0];
     if (file) {
         const imagem = document.createElement('img');
-        // AQUI USAMOS O 'URL' ORIGINAL DO NAVEGADOR, QUE AGORA NÃO ESTÁ MAIS ESCONDIDO
+        
+        // CORREÇÃO FINAL: Agora usamos o 'URL' original e correto do navegador.
         imagem.src = URL.createObjectURL(file);
+        
         imagem.onload = async () => {
-            const prediction = await model.predict(imagem);
-            prediction.sort((a, b) => b.probability - a.probability);
-            const modeloEncontrado = prediction[0].className;
-            console.log("VEREDITO DO MODELO DE IA:", modeloEncontrado);
-            modeloIdentificadoEl.innerText = `${modeloEncontrado} (${(prediction[0].probability * 100).toFixed(0)}% de certeza)`;
-            exibirCodigos(modeloEncontrado);
-            // E AQUI TAMBÉM
-            URL.revokeObjectURL(imagem.src);
+            try {
+                const prediction = await model.predict(imagem);
+                prediction.sort((a, b) => b.probability - a.probability);
+                const modeloEncontrado = prediction[0].className;
+                modeloIdentificadoEl.innerText = `${modeloEncontrado} (${(prediction[0].probability * 100).toFixed(0)}% de certeza)`;
+                exibirCodigos(modeloEncontrado);
+            } catch (error) {
+                console.error("ERRO CRÍTICO NA PREDIÇÃO:", error);
+                modeloIdentificadoEl.innerText = 'Erro ao analisar a imagem.';
+            } finally {
+                // Limpa o objeto da memória para evitar vazamentos
+                URL.revokeObjectURL(imagem.src);
+            }
+        }
+        imagem.onerror = () => {
+            modeloIdentificadoEl.innerText = 'Erro ao carregar a imagem selecionada.';
         }
     }
 });
@@ -99,4 +109,5 @@ function exibirCodigos(nomeDoModelo) {
     }
 }
 
-    document.addEventListener('DOMContentLoaded', iniciar);
+// O "porteiro" que garante que tudo está pronto antes de começar.
+document.addEventListener('DOMContentLoaded', iniciar);
