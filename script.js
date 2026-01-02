@@ -32,96 +32,74 @@ async function carregarCatalogoDoFirebase() {
         });
         modeloIdentificadoEl.innerText = '';
     } catch (error) {
-        console.error("ERRO CRÍTICO AO BUSCAR CATÁLOGO: ", error);
+        console.error("ERRO AO BUSCAR CATÁLOGO: ", error);
         modeloIdentificadoEl.innerText = 'Falha ao conectar com o banco de dados.';
     }
 }
 
 async function iniciar() {
-    console.log("[DIAGNÓSTICO] Função 'iniciar' começou.");
     await carregarCatalogoDoFirebase();
     if (Object.keys(catalogo).length > 0) {
-        console.log("[DIAGNÓSTICO] Catálogo carregado. Tentando carregar modelo de IA...");
         try {
             const modelURL = modelURLBase + 'model.json';
             const metadataURL = modelURLBase + 'metadata.json';
             model = await tmImage.load(modelURL, metadataURL);
-            console.log("[DIAGNÓSTICO] SUCESSO! Modelo de IA carregado e pronto.");
+            console.log("Modelo de IA carregado com sucesso!");
         } catch (error) {
-            console.error("[DIAGNÓSTICO] FALHA CRÍTICA AO CARREGAR MODELO DE IA:", error);
+            console.error("ERRO AO CARREGAR MODELO DE IA:", error);
             modeloIdentificadoEl.innerText = 'Falha ao carregar o modelo de reconhecimento.';
         }
     }
 }
 
 uploadInput.addEventListener('change', async (event) => {
-    console.log("==========================================");
-    console.log("[DIAGNÓSTICO] PASSO 1: FOTO SELECIONADA. Processo de análise iniciado.");
-
     if (!model) {
-        console.error("[DIAGNÓSTICO] FALHA: A análise começou, mas a variável 'model' está vazia.");
-        return alert("O modelo de IA não foi carregado. Verifique os logs de diagnóstico.");
+        return alert("O modelo de IA ainda não foi carregado. Verifique o console (F12).");
     }
-    console.log("[DIAGNÓSTICO] PASSO 2: Modelo de IA confirmado. Está pronto para uso.");
-
     modeloIdentificadoEl.innerText = 'Analisando...';
     codigosContainerEl.innerHTML = '';
-    
     const file = event.target.files[0];
+
     if (file) {
-        console.log("[DIAGNÓSTICO] PASSO 3: Arquivo da imagem recebido.", file);
+        // ========== INÍCIO DA CORREÇÃO FINAL ==========
+        // Substituindo o método URL.createObjectURL pelo método FileReader
+        
+        const reader = new FileReader();
 
-        const imagem = document.createElement('img');
-        console.log("[DIAGNÓSTICO] PASSO 4: Elemento <img> para análise criado na memória.");
-
-        // Adicionando um "detetive" para o caso de erro no carregamento da imagem
-        imagem.onerror = () => {
-            console.error("!!!!!!!!!! [DIAGNÓSTICO] ERRO FATAL NO PASSO 6 !!!!!!!!!!");
-            console.error("O evento 'onerror' da imagem foi disparado. O navegador não conseguiu ler o arquivo da foto.");
-            modeloIdentificadoEl.innerText = 'Erro fatal ao ler o arquivo de imagem.';
-        };
-
-        // Adicionando o "detetive" para o caso de sucesso
-        imagem.onload = async () => {
-            console.log("!!!!!!!!!! [DIAGNÓSTICO] SUCESSO NO PASSO 6 !!!!!!!!!!");
-            console.log("[DIAGNÓSTICO] PASSO 7: Imagem carregada na memória. Pronta para ser analisada pela IA.");
+        reader.onload = function(e) {
+            const imagem = document.createElement('img');
             
-            try {
-                console.log("[DIAGNÓSTICO] PASSO 8: Enviando a imagem para o cérebro da IA (model.predict).");
-                const prediction = await model.predict(imagem);
-                console.log("[DIAGNÓSTICO] PASSO 9: Cérebro da IA respondeu com sucesso.", prediction);
-                
-                prediction.sort((a, b) => b.probability - a.probability);
-                const modeloEncontrado = prediction[0].className;
-                
-                console.log("[DIAGNÓSTICO] PASSO 10: Veredito final:", modeloEncontrado);
-                modeloIdentificadoEl.innerText = `${modeloEncontrado} (${(prediction[0].probability * 100).toFixed(0)}% de certeza)`;
-                exibirCodigos(modeloEncontrado);
-
-            } catch (error) {
-                console.error("!!!!!!!!!! [DIAGNÓSTICO] ERRO CRÍTICO NO PASSO 8 !!!!!!!!!!", error);
-                modeloIdentificadoEl.innerText = 'Erro ao processar a imagem com a IA.';
-            } finally {
-                console.log("[DIAGNÓSTICO] PASSO 11: Limpando a imagem da memória.");
-                URL.revokeObjectURL(imagem.src);
-            }
+            // O evento 'onload' da imagem é colocado DENTRO do 'onload' do reader
+            imagem.onload = async () => {
+                try {
+                    const prediction = await model.predict(imagem);
+                    prediction.sort((a, b) => b.probability - a.probability);
+                    const modeloEncontrado = prediction[0].className;
+                    modeloIdentificadoEl.innerText = `${modeloEncontrado} (${(prediction[0].probability * 100).toFixed(0)}% de certeza)`;
+                    exibirCodigos(modeloEncontrado);
+                } catch (error) {
+                    console.error("ERRO NA PREDIÇÃO:", error);
+                    modeloIdentificadoEl.innerText = 'Erro ao analisar a imagem.';
+                }
+            };
+            
+            // Atribuímos o resultado da leitura (um DataURL) ao 'src' da imagem
+            imagem.src = e.target.result;
         };
         
-        console.log("[DIAGNÓSTICO] PASSO 5: 'Detetives' (onload e onerror) posicionados. Preparando para carregar a imagem na memória...");
-        
-        // A linha onde o problema provavelmente está
-        const objectURL = URL.createObjectURL(file);
-        imagem.src = objectURL;
-        
-        console.log("[DIAGNÓSTICO] PASSO 6: Imagem enviada para carregamento. Aguardando resposta dos 'detetives'...");
+        reader.onerror = function() {
+            console.error("FileReader falhou ao ler o arquivo.");
+            modeloIdentificadoEl.innerText = 'Erro ao carregar o arquivo de imagem.';
+        }
 
-    } else {
-        console.warn("[DIAGNÓSTICO] Evento disparado, mas nenhum arquivo foi encontrado.");
+        // Iniciamos a leitura do arquivo. Quando terminar, o 'onload' do reader será chamado.
+        reader.readAsDataURL(file);
+
+        // ========== FIM DA CORREÇÃO FINAL ==========
     }
 });
 
 function exibirCodigos(nomeDoModelo) {
-    // ... (esta função está ok, sem necessidade de diagnóstico por enquanto) ...
     const produto = catalogo[nomeDoModelo];
     if (produto) {
         for (const numeracao in produto.numeracoes) {
