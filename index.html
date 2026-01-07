@@ -1,30 +1,30 @@
-    <!DOCTYPE html>
-    <html lang="pt-br">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Identificador de Havaianas</title>
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <header>
-            <h1>Identificador de Havaianas</h1>
-            <p>Tire uma foto da sandália para ver os códigos de barras</p>
-        </header>
-        <main>
-            <label for="upload-camera" class="botao">Tirar Foto</label>
-            <input type="file" accept="image/*" capture="camera" id="upload-camera" style="display: none;">
-            <div id="resultado-area">
-                <h2 id="modelo-identificado"></h2>
-                <div id="codigos-container"></div>
-            </div>
-        </main>
-        
-        <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachable-machine-image.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-        <script src="script.js"></script>
-    </body>
-    </html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prova de Vida - Identificador</title>
+    <link rel="stylesheet" href="style.css"> 
+</head>
+<body>
+    <header>
+        <h1>Prova de Vida do Modelo de IA</h1>
+        <p>Este teste valida apenas a predição do modelo.</p>
+    </header>
+    <main>
+        <label for="upload-camera" class="botao">Tirar Foto</label>
+        <input type="file" accept="image/*" capture="camera" id="upload-camera" style="display: none;">
+        <div id="resultado-area">
+            <h2 id="modelo-identificado">Aguardando início...</h2>
+            <div id="codigos-container"></div>
+        </div>
+    </main>
+    
+    <!-- Bibliotecas JavaScript Essenciais -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachable-machine-image.min.js"></script>
+    
+    <!-- Nosso script validado -->
+    <script src="script.js"></script>
+</body>
+</html>
