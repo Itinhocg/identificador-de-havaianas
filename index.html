@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Identificador de Havaianas (Versão Final)</title>
+    <title>Identificador de Havaianas (Versão Corrigida)</title>
     <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
@@ -21,24 +21,14 @@
         </div>
     </main>
     
-    <!-- 
-      FUNDAÇÃO DE BIBLIOTECAS - A ORDEM É CRUCIAL 
-      Carrega todas as ferramentas externas antes de usar nosso próprio script.
-    -->
-
-    <!-- Ferramentas de IA da Google -->
+    <!-- Bibliotecas Externas -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachable-machine-image.min.js"></script>
-    
-    <!-- Ferramenta para gerar Códigos de Barras -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-    
-    <!-- Ferramentas do Firebase (Banco de Dados) -->
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
     
-    <!-- FINALMENTE, NOSSO SCRIPT (só executa após tudo acima estar pronto) -->
+    <!-- NOSSO SCRIPT VEM POR ÚLTIMO -->
     <script src="script.js"></script>
-    
 </body>
 </html>
