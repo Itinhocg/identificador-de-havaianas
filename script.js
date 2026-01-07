@@ -1,5 +1,3 @@
-// A LINHA FINAL DESTE ARQUIVO É A MAIS IMPORTANTE
-
 // Configurações
 const modelURL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/";
 const firebaseConfig = {
@@ -14,63 +12,51 @@ const firebaseConfig = {
 // Variáveis globais
 let model;
 let catalogo = {};
-let uploadInput, modeloIdentificadoEl, codigosContainerEl; // Declaradas aqui, mas atribuídas depois
+let uploadInput, modeloIdentificadoEl, codigosContainerEl;
 
-// Inicializa o Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-async function carregarCatalogoDoFirebase() {
-    modeloIdentificadoEl.innerText = 'Carregando catálogo de produtos...';
-    try {
-        const snapshot = await db.collection('modelos').get();
-        if (snapshot.empty) {
-            modeloIdentificadoEl.innerText = 'Erro: Catálogo de produtos está vazio no Firebase.';
-            return false;
-        }
-        snapshot.forEach(doc => {
-            const modelo = doc.data();
-            catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
-        });
-        return true;
-    } catch (error) {
-        console.error("ERRO AO BUSCAR CATÁLOGO:", error);
-        modeloIdentificadoEl.innerText = 'Falha crítica ao conectar com o banco de dados.';
-        return false;
-    }
-}
-
+// Função principal de inicialização
 async function iniciar() {
-    // >>>>> CORREÇÃO: Atribui as variáveis DEPOIS que a página carregou <<<<<
+    // Busca os elementos da página somente quando o DOM estiver pronto
     uploadInput = document.getElementById('upload-camera');
     modeloIdentificadoEl = document.getElementById('modelo-identificado');
     codigosContainerEl = document.getElementById('codigos-container');
 
-    const catalogoCarregado = await carregarCatalogoDoFirebase();
-    if (!catalogoCarregado) {
-        console.error("Inicialização interrompida: catálogo não pôde ser carregado.");
+    // Inicializa o Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Carrega o catálogo
+    modeloIdentificadoEl.innerText = 'Carregando catálogo de produtos...';
+    try {
+        const snapshot = await db.collection('modelos').get();
+        snapshot.forEach(doc => {
+            const modelo = doc.data();
+            catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
+        });
+    } catch (e) {
+        modeloIdentificadoEl.innerText = 'Falha ao carregar catálogo do Firebase.';
         return;
     }
 
+    // Carrega o modelo de IA
     modeloIdentificadoEl.innerText = 'Carregando modelo de IA...';
     try {
         const modelJsonURL = modelURL + 'model.json';
         const metadataJsonURL = modelURL + 'metadata.json';
-        model = await tmImage.load(modelJsonURL, metadataJsonURL);
+        model = await tmImage.load(modelJsonURL, metadataJsonURL); // Esta linha agora vai funcionar
         modeloIdentificadoEl.innerText = 'Tudo pronto! Por favor, tire uma foto.';
-    } catch (error) {
-        console.error("ERRO CRÍTICO AO CARREGAR MODELO DE IA:", error);
+    } catch (e) {
         modeloIdentificadoEl.innerText = 'Falha crítica ao carregar o modelo de IA.';
-        alert("Ocorreu um erro fatal ao carregar o modelo de reconhecimento. Verifique o console (F12).");
-        return; // Interrompe se o modelo não carregar
+        console.error("ERRO CRÍTICO AO CARREGAR MODELO DE IA:", e);
+        return;
     }
 
-    // Adiciona o 'event listener' somente depois que tudo estiver pronto
+    // Adiciona o 'event listener' para o upload da imagem
     uploadInput.addEventListener('change', handleImageUpload);
 }
 
 async function handleImageUpload(event) {
-    if (!model) return alert("Modelo de IA não está pronto.");
+    if (!model) return;
     
     modeloIdentificadoEl.innerText = 'Analisando...';
     codigosContainerEl.innerHTML = '';
@@ -90,8 +76,8 @@ async function handleImageUpload(event) {
                     modeloIdentificadoEl.innerText = `${modeloEncontrado} (${probabilidade}% de certeza)`;
                     exibirCodigos(modeloEncontrado);
                 } catch (error) {
-                    console.error("ERRO DURANTE A PREDIÇÃO:", error);
                     modeloIdentificadoEl.innerText = 'Erro ao processar a imagem com a IA.';
+                    console.error("ERRO DURANTE A PREDIÇÃO:", error);
                 }
             };
             imagem.src = e.target.result;
@@ -131,6 +117,6 @@ function exibirCodigos(nomeDoModelo) {
     }
 }
 
-// A SOLUÇÃO FINAL: Garante que a função 'iniciar' só seja chamada 
-// depois que a página HTML inteira estiver pronta.
+// A SOLUÇÃO FINAL: Garante que a função 'iniciar' só seja chamada
+// depois que a página HTML inteira (DOM) estiver pronta.
 document.addEventListener('DOMContentLoaded', iniciar);
