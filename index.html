@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prova de Vida - Identificador</title>
+    <title>Identificador de Havaianas (COMPLETO)</title>
     <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
     <header>
-        <h1>Prova de Vida do Modelo de IA</h1>
-        <p>Este teste valida apenas a predição do modelo.</p>
+        <h1>Identificador de Havaianas</h1>
+        <p>Tire uma foto da sandália para ver os códigos de barras</p>
     </header>
     <main>
         <label for="upload-camera" class="botao">Tirar Foto</label>
@@ -20,11 +20,23 @@
         </div>
     </main>
     
-    <!-- Bibliotecas JavaScript Essenciais -->
+    <!-- ===================================================================== -->
+    <!--          A "FUNDAÇÃO" DE BIBLIOTECAS QUE RESOLVE O PROBLEMA           -->
+    <!-- ===================================================================== -->
+
+    <!-- Biblioteca de IA e imagem -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachable-machine-image.min.js"></script>
     
-    <!-- Nosso script validado -->
+    <!-- Biblioteca para gerar códigos de barras -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    
+    <!-- >>>>> AS BIBLIOTECAS DO FIREBASE QUE ESTÃO FALTANDO NO SEU HTML LOCAL <<<<< -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
+    
+    <!-- NOSSO SCRIPT (só deve ser executado no final, quando tudo acima estiver pronto) -->
     <script src="script.js"></script>
+    
 </body>
 </html>
