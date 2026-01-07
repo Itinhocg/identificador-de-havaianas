@@ -35,6 +35,7 @@ async function iniciar() {
         });
     } catch (e) {
         modeloIdentificadoEl.innerText = 'Falha ao carregar catálogo do Firebase.';
+        console.error("ERRO AO CARREGAR CATÁLOGO:", e);
         return;
     }
 
