@@ -1,5 +1,5 @@
-// Configurações
-const modelURL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/";
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/model.json";
+const METADATA_URL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/metadata.json";
 const firebaseConfig = {
     apiKey: "AIzaSyBE3zKmHdr0dXKbKb67-AascSf4aKhI_NU",
     authDomain: "identificador-de-havaianas.firebaseapp.com",
@@ -8,116 +8,90 @@ const firebaseConfig = {
     messagingSenderId: "599447753010",
     appId: "1:599447753010:web:4ae65ee4e1eeb76e13072b"
 };
+let model, metadata, catalogo = {};
+let uploadInput, modeloIdentificadoEl, codigosContainerEl, imagemPreviewEl;
 
-// Variáveis globais
-let model;
-let catalogo = {};
-let uploadInput, modeloIdentificadoEl, codigosContainerEl;
-
-// Função principal de inicialização
 async function iniciar() {
-    // Busca os elementos da página somente quando o DOM estiver pronto
     uploadInput = document.getElementById('upload-camera');
     modeloIdentificadoEl = document.getElementById('modelo-identificado');
     codigosContainerEl = document.getElementById('codigos-container');
-
-    // Inicializa o Firebase
+    imagemPreviewEl = document.getElementById('imagem-preview');
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
-
-    // Carrega o catálogo
-    modeloIdentificadoEl.innerText = 'Carregando catálogo de produtos...';
+    modeloIdentificadoEl.innerText = 'Carregando recursos...';
     try {
-        const snapshot = await db.collection('modelos').get();
-        snapshot.forEach(doc => {
+        const [modelResponse, metadataResponse, catalogoSnapshot] = await Promise.all([
+            tf.loadLayersModel(MODEL_URL),
+            fetch(METADATA_URL),
+            db.collection('modelos').get()
+        ]);
+        model = modelResponse;
+        metadata = await metadataResponse.json();
+        catalogoSnapshot.forEach(doc => {
             const modelo = doc.data();
             catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
         });
-    } catch (e) {
-        modeloIdentificadoEl.innerText = 'Falha ao carregar catálogo do Firebase.';
-        console.error("ERRO AO CARREGAR CATÁLOGO:", e);
-        return;
-    }
-
-    // Carrega o modelo de IA
-    modeloIdentificadoEl.innerText = 'Carregando modelo de IA...';
-    try {
-        const modelJsonURL = modelURL + 'model.json';
-        const metadataJsonURL = modelURL + 'metadata.json';
-        model = await tmImage.load(modelJsonURL, metadataJsonURL); // Esta linha agora vai funcionar
         modeloIdentificadoEl.innerText = 'Tudo pronto! Por favor, tire uma foto.';
-    } catch (e) {
-        modeloIdentificadoEl.innerText = 'Falha crítica ao carregar o modelo de IA.';
-        console.error("ERRO CRÍTICO AO CARREGAR MODELO DE IA:", e);
-        return;
+        uploadInput.addEventListener('change', handleImageUpload);
+    } catch (error) {
+        modeloIdentificadoEl.innerText = 'Falha crítica: Problema de CORS.';
+        console.error("ERRO DE CORS:", error);
+        alert("O ERRO É CORS! A sua extensão 'Allow CORS' está desligada. Por favor, ative-a e recarregue a página.");
     }
-
-    // Adiciona o 'event listener' para o upload da imagem
-    uploadInput.addEventListener('change', handleImageUpload);
 }
-
 async function handleImageUpload(event) {
-    if (!model) return;
-    
+    if (!model || !metadata) return alert("O modelo de IA ainda não está pronto.");
+    const file = event.target.files[0];
+    if (!file) return;
     modeloIdentificadoEl.innerText = 'Analisando...';
     codigosContainerEl.innerHTML = '';
-    const file = event.target.files[0];
-
-    if (file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const imagem = document.createElement('img');
-            imagem.onload = async () => {
-                try {
-                    const prediction = await model.predict(imagem);
-                    prediction.sort((a, b) => b.probability - a.probability);
-                    const modeloEncontrado = prediction[0].className;
-                    const probabilidade = (prediction[0].probability * 100).toFixed(0);
-
-                    modeloIdentificadoEl.innerText = `${modeloEncontrado} (${probabilidade}% de certeza)`;
-                    exibirCodigos(modeloEncontrado);
-                } catch (error) {
-                    modeloIdentificadoEl.innerText = 'Erro ao processar a imagem com a IA.';
-                    console.error("ERRO DURANTE A PREDIÇÃO:", error);
+    const reader = new FileReader();
+    reader.onload = e => {
+        imagemPreviewEl.src = e.target.result;
+        imagemPreviewEl.style.display = 'block';
+        imagemPreviewEl.onload = async () => {
+            try {
+                const tensor = tf.browser.fromPixels(imagemPreviewEl).resizeNearestNeighbor([224, 224]).toFloat().expandDims();
+                const predictions = await model.predict(tensor).data();
+                tensor.dispose();
+                let maxProbability = 0, predictedClassIndex = -1;
+                for (let i = 0; i < predictions.length; i++) {
+                    if (predictions[i] > maxProbability) {
+                        maxProbability = predictions[i];
+                        predictedClassIndex = i;
+                    }
                 }
-            };
-            imagem.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
-    }
+                const modeloEncontrado = metadata.labels[predictedClassIndex];
+                const probabilidade = (maxProbability * 100).toFixed(0);
+                modeloIdentificadoEl.innerText = `${modeloEncontrado} (${probabilidade}% de certeza)`;
+                exibirCodigos(modeloEncontrado);
+            } catch (error) {
+                 modeloIdentificadoEl.innerText = 'Erro ao analisar a imagem.';
+                 console.error("ERRO NA PREDIÇÃO:", error);
+            }
+        }
+    };
+    reader.readAsDataURL(file);
 }
-
 function exibirCodigos(nomeDoModelo) {
-    codigosContainerEl.innerHTML = ''; 
+    codigosContainerEl.innerHTML = '';
     const produto = catalogo[nomeDoModelo];
     if (produto) {
         for (const numeracao in produto.numeracoes) {
             const codigoDeBarras = produto.numeracoes[numeracao];
             const itemDiv = document.createElement('div');
             itemDiv.classList.add('codigo-item');
-            
             const numeracaoP = document.createElement('p');
             numeracaoP.innerText = `Numeração: ${numeracao}`;
-            
             const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
             barcodeSvg.id = `barcode-${Math.random().toString(36).substr(2, 9)}`;
-            
             itemDiv.appendChild(numeracaoP);
             itemDiv.appendChild(barcodeSvg);
             codigosContainerEl.appendChild(itemDiv);
-            
-            JsBarcode(`#${barcodeSvg.id}`, codigoDeBarras, {
-                format: "EAN13",
-                displayValue: true,
-                fontSize: 14,
-                margin: 10
-            });
+            JsBarcode(`#${barcodeSvg.id}`, codigoDeBarras, {format: "EAN13", displayValue: true, fontSize: 14, margin: 10});
         }
     } else {
         codigosContainerEl.innerText = 'Modelo identificado, mas não encontrado no catálogo.';
     }
 }
-
-// A SOLUÇÃO FINAL: Garante que a função 'iniciar' só seja chamada
-// depois que a página HTML inteira (DOM) estiver pronta.
 document.addEventListener('DOMContentLoaded', iniciar);

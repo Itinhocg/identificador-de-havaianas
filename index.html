@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Identificador de Havaianas (Versão Final Corrigida)</title>
-    <link rel="stylesheet" href="style.css"> 
+    <title>Identificador de Havaianas (TF.js Puro)</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
@@ -14,24 +14,17 @@
     <main>
         <label for="upload-camera" class="botao">Tirar Foto</label>
         <input type="file" accept="image/*" capture="camera" id="upload-camera" style="display: none;">
+        <img id="imagem-preview" style="display:none; max-width: 100%; margin-top: 1rem;" />
         
         <div id="resultado-area">
             <h2 id="modelo-identificado">Aguardando início...</h2>
             <div id="codigos-container"></div>
         </div>
     </main>
-    
-    <!-- CARREGANDO A FUNDAÇÃO PRIMEIRO -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    
-    <!-- >>>>> ESTE É O LINK CORRETO E OFICIAL - A SOLUÇÃO FINAL &lt;&lt;&lt;&lt;&lt; -->
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachable-machine-image.min.js"></script>
-    
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
-    
-    <!-- NOSSO SCRIPT VEM POR ÚLTIMO, QUANDO TUDO JÁ ESTIVER PRONTO -->
     <script src="script.js"></script>
 </body>
 </html>
