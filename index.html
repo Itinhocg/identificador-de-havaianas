@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Identificador de Havaianas (COMPLETO)</title>
+    <title>Identificador de Havaianas (Versão Final)</title>
     <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
@@ -14,28 +14,30 @@
     <main>
         <label for="upload-camera" class="botao">Tirar Foto</label>
         <input type="file" accept="image/*" capture="camera" id="upload-camera" style="display: none;">
+        
         <div id="resultado-area">
             <h2 id="modelo-identificado">Aguardando início...</h2>
             <div id="codigos-container"></div>
         </div>
     </main>
     
-    <!-- ===================================================================== -->
-    <!--          A "FUNDAÇÃO" DE BIBLIOTECAS QUE RESOLVE O PROBLEMA           -->
-    <!-- ===================================================================== -->
+    <!-- 
+      FUNDAÇÃO DE BIBLIOTECAS - A ORDEM É CRUCIAL 
+      Carrega todas as ferramentas antes de usar.
+    -->
 
-    <!-- Biblioteca de IA e imagem -->
+    <!-- Ferramentas de IA da Google -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachable-machine-image.min.js"></script>
     
-    <!-- Biblioteca para gerar códigos de barras -->
+    <!-- Ferramenta para gerar Códigos de Barras -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     
-    <!-- >>>>> AS BIBLIOTECAS DO FIREBASE QUE ESTÃO FALTANDO NO SEU HTML LOCAL <<<<< -->
+    <!-- Ferramentas do Firebase (Banco de Dados) - Versão 'compat' para funcionar com seu código -->
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.7/firebase-firestore-compat.js"></script>
     
-    <!-- NOSSO SCRIPT (só deve ser executado no final, quando tudo acima estiver pronto) -->
+    <!-- FINALMENTE, NOSSO SCRIPT (só executa após tudo acima estar pronto) -->
     <script src="script.js"></script>
     
 </body>

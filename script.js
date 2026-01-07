@@ -1,11 +1,11 @@
-// ====================================================================================
+// 
 // CONFIGURAÇÃO PRINCIPAL
-// ====================================================================================
+// 
 
 // URL PÚBLICA E ESTÁVEL DO SEU MODELO. Carregamos daqui, e não do GitHub.
 const modelURL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/";
 
-// Configuração do Firebase
+// Configuração do Firebase que você forneceu
 const firebaseConfig = {
     apiKey: "AIzaSyBE3zKmHdr0dXKbKb67-AascSf4aKhI_NU",
     authDomain: "identificador-de-havaianas.firebaseapp.com",
@@ -15,9 +15,9 @@ const firebaseConfig = {
     appId: "1:599447753010:web:4ae65ee4e1eeb76e13072b"
 };
 
-// ====================================================================================
-// INICIALIZAÇÃO E LÓGICA DO APLICATIVO (Não mexer)
-// ====================================================================================
+// 
+// LÓGICA DO APLICATIVO
+// 
 
 // Variáveis globais
 let model;
@@ -44,7 +44,6 @@ async function carregarCatalogoDoFirebase() {
             const modelo = doc.data();
             catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
         });
-        // Se chegou aqui, o catálogo está pronto.
     } catch (error) {
         console.error("ERRO AO BUSCAR CATÁLOGO:", error);
         modeloIdentificadoEl.innerText = 'Falha crítica ao conectar com o banco de dados.';
@@ -54,7 +53,6 @@ async function carregarCatalogoDoFirebase() {
 async function iniciar() {
     await carregarCatalogoDoFirebase();
     
-    // Só continua se o catálogo foi carregado
     if (Object.keys(catalogo).length === 0) {
         console.error("Inicialização interrompida: catálogo não pôde ser carregado.");
         return;
@@ -65,7 +63,6 @@ async function iniciar() {
         const modelJsonURL = modelURL + 'model.json';
         const metadataJsonURL = modelURL + 'metadata.json';
         
-        // Carrega o modelo a partir do link PÚBLICO
         model = await tmImage.load(modelJsonURL, metadataJsonURL);
         
         modeloIdentificadoEl.innerText = 'Tudo pronto! Por favor, tire uma foto.';
@@ -111,7 +108,7 @@ uploadInput.addEventListener('change', async (event) => {
 });
 
 function exibirCodigos(nomeDoModelo) {
-    codigosContainerEl.innerHTML = ''; // Limpa resultados anteriores
+    codigosContainerEl.innerHTML = ''; 
     const produto = catalogo[nomeDoModelo];
     if (produto) {
         for (const numeracao in produto.numeracoes) {
@@ -123,7 +120,7 @@ function exibirCodigos(nomeDoModelo) {
             numeracaoP.innerText = `Numeração: ${numeracao}`;
             
             const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-            barcodeSvg.id = `barcode-${Math.random().toString(36).substr(2, 9)}`; // ID aleatório para evitar conflitos
+            barcodeSvg.id = `barcode-${Math.random().toString(36).substr(2, 9)}`;
             
             itemDiv.appendChild(numeracaoP);
             itemDiv.appendChild(barcodeSvg);
@@ -137,9 +134,14 @@ function exibirCodigos(nomeDoModelo) {
             });
         }
     } else {
-        codigosContainerEl.innerText = 'Modelo identificado, mas não encontrado no catálogo de produtos.';
+        codigosContainerEl.innerText = 'Modelo identificado, mas não encontrado no catálogo.';
     }
 }
 
-// O "porteiro" que garante que tudo só começa quando a página está pronta.
+// 
+// O PONTO DE PARTIDA - A SOLUÇÃO FINAL
+// Esta linha garante que a função 'iniciar' só será chamada DEPOIS que
+// toda a página, incluindo TODAS as bibliotecas, estiver 100% pronta.
+// Isso resolve o erro 'tmImage is not defined'.
+//
 document.addEventListener('DOMContentLoaded', iniciar);
