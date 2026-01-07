@@ -1,70 +1,102 @@
-// O URL exato e público do seu modelo.
-const modelURL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/";
+const firebaseConfig = {
+    apiKey: "AIzaSyBE3zKmHdr0dXKbKb67-AascSf4aKhI_NU",
+    authDomain: "identificador-de-havaianas.firebaseapp.com",
+    projectId: "identificador-de-havaianas",
+    storageBucket: "identificador-de-havaianas.firebasestorage.app",
+    messagingSenderId: "599447753010",
+    appId: "1:599447753010:web:4ae65ee4e1eeb76e13072b"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+const modelURLBase = 'https://itinhocg.github.io/identificador-de-havaianas/';
 let model;
+let catalogo = {};
 
 const uploadInput = document.getElementById('upload-camera');
 const modeloIdentificadoEl = document.getElementById('modelo-identificado');
 const codigosContainerEl = document.getElementById('codigos-container');
 
-async function iniciar() {
-    modeloIdentificadoEl.innerText = 'Carregando seu modelo de IA...';
+async function carregarCatalogoDoFirebase() {
+    modeloIdentificadoEl.innerText = 'Carregando catálogo...';
     try {
-        const modelJsonURL = modelURL + 'model.json';
-        const metadataJsonURL = modelURL + 'metadata.json';
-        
-        // Carrega o modelo diretamente do link compartilhado.
-        model = await tmImage.load(modelJsonURL, metadataJsonURL);
-        
-        modeloIdentificadoEl.innerText = 'Modelo pronto. Por favor, tire uma foto.';
+        const snapshot = await db.collection('modelos').get();
+        if (snapshot.empty) {
+            modeloIdentificadoEl.innerText = 'Erro: Catálogo vazio.';
+            return;
+        }
+        snapshot.forEach(doc => {
+            const modelo = doc.data();
+            catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
+        });
+        modeloIdentificadoEl.innerText = '';
     } catch (error) {
-        console.error("ERRO CRÍTICO AO CARREGAR MODELO DE IA:", error);
-        modeloIdentificadoEl.innerText = 'Falha crítica ao carregar o modelo. Verifique o console (F12).';
-        alert("Não foi possível carregar o modelo de IA. Verifique sua conexão com a internet.");
+        console.error("ERRO AO BUSCAR CATÁLOGO:", error);
+        modeloIdentificadoEl.innerText = 'Falha ao conectar com DB.';
+    }
+}
+
+async function iniciar() {
+    await carregarCatalogoDoFirebase();
+    if (Object.keys(catalogo).length > 0) {
+        try {
+            modeloIdentificadoEl.innerText = 'Carregando modelo de IA...';
+            const modelURL = modelURLBase + 'model.json';
+            const metadataURL = modelURLBase + 'metadata.json';
+            
+            // A linha que estava dando erro
+            model = await tmImage.load(modelURL, metadataURL);
+            
+            modeloIdentificadoEl.innerText = 'Pronto. Tire uma foto.';
+        } catch (error) {
+            console.error("ERRO CRÍTICO AO CARREGAR MODELO DE IA:", error);
+            modeloIdentificadoEl.innerText = 'Falha ao carregar o modelo de reconhecimento.';
+        }
     }
 }
 
 uploadInput.addEventListener('change', async (event) => {
-    if (!model) {
-        return alert("O modelo de IA ainda não foi carregado. Por favor, aguarde.");
-    }
+    if (!model) return alert("Modelo de IA não carregado.");
     modeloIdentificadoEl.innerText = 'Analisando...';
     codigosContainerEl.innerHTML = '';
     const file = event.target.files[0];
 
     if (file) {
-        // Usando o método FileReader, que é mais robusto.
         const reader = new FileReader();
-
         reader.onload = function(e) {
             const imagem = document.createElement('img');
-            
             imagem.onload = async () => {
                 try {
                     const prediction = await model.predict(imagem);
                     prediction.sort((a, b) => b.probability - a.probability);
                     const modeloEncontrado = prediction[0].className;
-                    const probabilidade = (prediction[0].probability * 100).toFixed(0);
-
-                    modeloIdentificadoEl.innerText = `Modelo: ${modeloEncontrado} (${probabilidade}% de certeza)`;
-                    codigosContainerEl.innerHTML = "<p>Predição bem-sucedida! A integração com o Firebase pode ser feita a seguir.</p>";
-
+                    modeloIdentificadoEl.innerText = `${modeloEncontrado} (${(prediction[0].probability * 100).toFixed(0)}%)`;
+                    exibirCodigos(modeloEncontrado);
                 } catch (error) {
-                    console.error("ERRO NA PREDIÇÃO:", error);
-                    modeloIdentificadoEl.innerText = 'Erro ao analisar a imagem.';
+                    modeloIdentificadoEl.innerText = 'Erro ao analisar imagem.';
                 }
             };
-            
             imagem.src = e.target.result;
         };
-        
-        reader.onerror = function() {
-            console.error("FileReader falhou ao ler o arquivo.");
-            modeloIdentificadoEl.innerText = 'Erro ao carregar o arquivo de imagem.';
-        }
-
         reader.readAsDataURL(file);
     }
 });
 
-// Garante que o script só rode quando a página estiver 100% pronta.
+function exibirCodigos(nomeDoModelo) {
+    const produto = catalogo[nomeDoModelo];
+    if (produto) {
+        for (const numeracao in produto.numeracoes) {
+            const codigoDeBarras = produto.numeracoes[numeracao];
+            const itemDiv = document.createElement('div');
+            // ... (código de exibição do barcode)
+        }
+    } else {
+        codigosContainerEl.innerText = 'Modelo não encontrado no catálogo.';
+    }
+}
+
+// CORREÇÃO FINAL E DEFINITIVA:
+// Garante que a função 'iniciar' só será chamada DEPOIS que
+// toda a página, incluindo a biblioteca teachable-machine, estiver pronta.
 document.addEventListener('DOMContentLoaded', iniciar);
