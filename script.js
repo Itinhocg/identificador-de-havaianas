@@ -3,7 +3,7 @@
 // 
 
 // URL PÚBLICA E ESTÁVEL DO SEU MODELO. Carregamos daqui, e não do GitHub.
-const modelURL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/";
+const modelURL = "https://teachablemachine.withgoogle.com/models/nSch03VQT/";
 
 // Configuração do Firebase que você forneceu
 const firebaseConfig = {
