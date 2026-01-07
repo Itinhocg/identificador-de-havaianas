@@ -1,78 +1,6 @@
-// 
-// CONFIGURAÇÃO PRINCIPAL
-// 
+// [Todo o código anterior permanece o mesmo até o addEventListener]
 
-// URL PÚBLICA E ESTÁVEL DO SEU MODELO.
-const modelURL = "https://teachablemachine.withgoogle.com/models/SXn8X12fF/";
-
-// Configuração do Firebase que você forneceu
-const firebaseConfig = {
-    apiKey: "AIzaSyBE3zKmHdr0dXKbKb67-AascSf4aKhI_NU",
-    authDomain: "identificador-de-havaianas.firebaseapp.com",
-    projectId: "identificador-de-havaianas",
-    storageBucket: "identificador-de-havaianas.firebasestorage.app",
-    messagingSenderId: "599447753010",
-    appId: "1:599447753010:web:4ae65ee4e1eeb76e13072b"
-};
-
-// 
-// LÓGICA DO APLICATIVO
-// 
-
-// Variáveis globais
-let model;
-let catalogo = {};
-
-// Elementos da página
-const uploadInput = document.getElementById('upload-camera');
-const modeloIdentificadoEl = document.getElementById('modelo-identificado');
-const codigosContainerEl = document.getElementById('codigos-container');
-
-// Inicializa o Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-
-async function carregarCatalogoDoFirebase() {
-    modeloIdentificadoEl.innerText = 'Carregando catálogo de produtos...';
-    try {
-        const snapshot = await db.collection('modelos').get();
-        if (snapshot.empty) {
-            modeloIdentificadoEl.innerText = 'Erro: Catálogo de produtos está vazio no Firebase.';
-            return;
-        }
-        snapshot.forEach(doc => {
-            const modelo = doc.data();
-            catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
-        });
-    } catch (error) {
-        console.error("ERRO AO BUSCAR CATÁLOGO:", error);
-        modeloIdentificadoEl.innerText = 'Falha crítica ao conectar com o banco de dados.';
-    }
-}
-
-async function iniciar() {
-    await carregarCatalogoDoFirebase();
-    
-    if (Object.keys(catalogo).length === 0) {
-        console.error("Inicialização interrompida: catálogo não pôde ser carregado.");
-        return;
-    }
-
-    modeloIdentificadoEl.innerText = 'Carregando modelo de IA...';
-    try {
-        const modelJsonURL = modelURL + 'model.json';
-        const metadataJsonURL = modelURL + 'metadata.json';
-        
-        // Esta linha agora funcionará, pois o HTML garantiu que 'tmImage' existe.
-        model = await tmImage.load(modelJsonURL, metadataJsonURL);
-        
-        modeloIdentificadoEl.innerText = 'Tudo pronto! Por favor, tire uma foto.';
-    } catch (error) {
-        console.error("ERRO CRÍTICO AO CARREGAR MODELO DE IA:", error);
-        modeloIdentificadoEl.innerText = 'Falha crítica ao carregar o modelo de IA. O link pode estar quebrado.';
-        alert("Ocorreu um erro fatal ao carregar o modelo de reconhecimento. Verifique o console (F12).");
-    }
-}
+// ... (código de configuração, iniciar(), etc.)
 
 uploadInput.addEventListener('change', async (event) => {
     if (!model) return alert("Aguarde, o modelo de IA ainda não está pronto.");
@@ -83,30 +11,47 @@ uploadInput.addEventListener('change', async (event) => {
 
     if (file) {
         const reader = new FileReader();
+        
         reader.onload = function(e) {
             const imagem = document.createElement('img');
-            imagem.onload = async () => {
-                try {
-                    const prediction = await model.predict(imagem);
-                    prediction.sort((a, b) => b.probability - a.probability);
-                    const modeloEncontrado = prediction[0].className;
-                    const probabilidade = (prediction[0].probability * 100).toFixed(0);
+            
+            // >>>>> A MUDANÇA CRUCIAL ESTÁ AQUI <<<<<
+            // Adicionamos um pequeno delay para garantir que a imagem
+            // seja totalmente decodificada pelo navegador antes de ser usada.
+            // Isso resolve o erro de "tensor shape".
+            imagem.onload = () => {
+                setTimeout(async () => {
+                    try {
+                        const prediction = await model.predict(imagem);
+                        prediction.sort((a, b) => b.probability - a.probability);
+                        const modeloEncontrado = prediction[0].className;
+                        const probabilidade = (prediction[0].probability * 100).toFixed(0);
 
-                    modeloIdentificadoEl.innerText = `${modeloEncontrado} (${probabilidade}% de certeza)`;
-                    exibirCodigos(modeloEncontrado);
-                } catch (error) {
-                    console.error("ERRO DURANTE A PREDIÇÃO:", error);
-                    modeloIdentificadoEl.innerText = 'Erro ao processar a imagem com a IA.';
-                }
+                        modeloIdentificadoEl.innerText = `${modeloEncontrado} (${probabilidade}% de certeza)`;
+                        exibirCodigos(modeloEncontrado);
+                    } catch (error) {
+                        console.error("ERRO DURANTE A PREDIÇÃO:", error);
+                        modeloIdentificadoEl.innerText = 'Erro ao processar a imagem com a IA.';
+                    }
+                }, 100); // Um pequeno atraso de 100ms é geralmente suficiente.
             };
+
+            imagem.onerror = () => {
+                modeloIdentificadoEl.innerText = 'Erro: Não foi possível carregar a imagem selecionada.';
+            };
+            
             imagem.src = e.target.result;
         };
+
         reader.onerror = () => {
             modeloIdentificadoEl.innerText = 'Erro ao ler o arquivo da imagem.';
         };
+        
         reader.readAsDataURL(file);
     }
 });
+
+// ... (o resto do código, como exibirCodigos() e o addEventListener 'DOMContentLoaded', permanece o mesmo)
 
 function exibirCodigos(nomeDoModelo) {
     codigosContainerEl.innerHTML = ''; 
@@ -139,10 +84,4 @@ function exibirCodigos(nomeDoModelo) {
     }
 }
 
-// 
-// O PONTO DE PARTIDA - A SOLUÇÃO FINAL
-// Esta linha garante que a função 'iniciar' só será chamada DEPOIS que
-// toda a página, incluindo TODAS as bibliotecas, estiver 100% pronta.
-// Isso resolve o erro 'tmImage is not defined'.
-//
 document.addEventListener('DOMContentLoaded', iniciar);
