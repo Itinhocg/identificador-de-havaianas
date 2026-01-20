@@ -2,7 +2,7 @@
 // --- CONFIGURAÇÕES DO PROJETO ---
 // =================================================================
 
-// 1. URL do modelo (Configurado no netlify.toml)
+// 1. URL do modelo
 const MODEL_URL = "/api/model/model.json";
 const METADATA_URL = "/api/metadata/metadata.json";
 
@@ -24,27 +24,22 @@ let model, metadata, catalogo = {};
 let uploadInput, modeloIdentificadoEl, imagemPreviewEl, tamanhoContainerEl, codigoContainerEl;
 
 // =================================================================
-// --- FUNÇÃO DE INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO ---
 // =================================================================
 
 async function iniciar() {
-    // Mapeia os elementos do HTML
     uploadInput = document.getElementById('upload-camera');
     modeloIdentificadoEl = document.getElementById('modelo-identificado');
     imagemPreviewEl = document.getElementById('imagem-preview');
     tamanhoContainerEl = document.getElementById('tamanho-container');
     codigoContainerEl = document.getElementById('codigo-container');
 
-    // Inicializa o Firebase
-    if (!firebase.apps.length) {
-        firebase.initializeApp(firebaseConfig);
-    }
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
     modeloIdentificadoEl.innerText = 'Carregando recursos...';
 
     try {
-        // Carrega modelo, metadados e catálogo em paralelo
         const [modelResponse, metadataResponse, catalogoSnapshot] = await Promise.all([
             tf.loadLayersModel(MODEL_URL),
             fetch(METADATA_URL),
@@ -54,7 +49,6 @@ async function iniciar() {
         model = modelResponse;
         metadata = await metadataResponse.json();
 
-        // Carrega catálogo na memória
         catalogoSnapshot.forEach(doc => {
             const modelo = doc.data();
             catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
@@ -63,23 +57,22 @@ async function iniciar() {
         modeloIdentificadoEl.innerText = 'Tudo pronto! Por favor, tire uma foto.';
         uploadInput.addEventListener('change', handleImageUpload);
     } catch (error) {
-        modeloIdentificadoEl.innerText = 'Falha crítica ao carregar recursos.';
-        console.error("ERRO DE CARREGAMENTO:", error);
-        alert("ERRO: Não foi possível carregar o modelo ou dados. Verifique a conexão.");
+        modeloIdentificadoEl.innerText = 'Falha ao carregar recursos.';
+        console.error(error);
+        alert("Erro ao carregar o sistema.");
     }
 }
 
 // =================================================================
-// --- FLUXO DE ANÁLISE DA IMAGEM ---
+// --- PROCESSAMENTO DA IMAGEM (A CORREÇÃO ESTÁ AQUI) ---
 // =================================================================
 
 async function handleImageUpload(event) {
-    if (!model || !metadata) return alert("O modelo de IA ainda não está pronto.");
-    
+    if (!model || !metadata) return alert("Aguarde o carregamento da IA.");
     const file = event.target.files[0];
     if (!file) return;
 
-    resetInterface('Analisando...');
+    resetInterface('Processando imagem...');
     
     const reader = new FileReader();
     reader.onload = e => {
@@ -90,29 +83,31 @@ async function handleImageUpload(event) {
     reader.readAsDataURL(file);
 }
 
-// --- AQUI ESTÁ A CORREÇÃO MÁGICA (CROP CENTRAL) ---
 async function processarPredicao(imagem) {
     try {
-        // 1. Converte a imagem para tensor bruto
+        // 1. Converte imagem para Tensor
         let tensor = tf.browser.fromPixels(imagem);
 
-        // 2. CÁLCULO DO CROP CENTRAL (Para não distorcer a imagem)
+        // 2. CORTE CENTRAL (CROP)
         const [height, width] = tensor.shape;
         const shorterSide = Math.min(height, width);
         const startingHeight = (height - shorterSide) / 2;
         const startingWidth = (width - shorterSide) / 2;
 
-        // 3. Aplica o corte e redimensiona
-        tensor = tensor.slice([startingHeight, startingWidth, 0], [shorterSide, shorterSide, 3])
-            .resizeBilinear([224, 224]) // Bilinear é melhor para manter qualidade
+        // 3. PROCESSAMENTO COMPLETO: CORTAR -> REDIMENSIONAR -> NORMALIZAR
+        tensor = tensor
+            .slice([startingHeight, startingWidth, 0], [shorterSide, shorterSide, 3]) // Corta o quadrado
+            .resizeBilinear([224, 224]) // Redimensiona
             .toFloat()
+            .div(tf.scalar(127.5)) // <--- A MÁGICA: Divide por 127.5
+            .sub(tf.scalar(1))     // <--- A MÁGICA: Subtrai 1 (Resultado fica entre -1 e 1)
             .expandDims();
 
-        // 4. Faz a previsão
+        // 4. Predição
         const predictions = await model.predict(tensor).data();
-        tensor.dispose(); // Limpa a memória
+        tensor.dispose();
 
-        // 5. Encontra a melhor aposta
+        // 5. Encontrar melhor resultado
         let maxProbability = 0;
         let predictedClassIndex = -1;
         for (let i = 0; i < predictions.length; i++) {
@@ -122,36 +117,33 @@ async function processarPredicao(imagem) {
             }
         }
 
-        // Configurações de confiança
-        const confidenceThreshold = 0.50; // Mantivemos 50% para teste
+        const confidenceThreshold = 0.70; // VOLTAMOS PARA 70% (AGORA VAI FUNCIONAR)
         const modeloEncontrado = metadata.labels[predictedClassIndex];
         const probabilidade = (maxProbability * 100).toFixed(0);
 
-        // DIAGNÓSTICO NO CONSOLE
-        console.log("================ DIAGNÓSTICO ================");
-        console.log("Modelo Visto:", modeloEncontrado);
+        // DIAGNÓSTICO
+        console.log("=== RESULTADO ===");
+        console.log("Modelo:", modeloEncontrado);
         console.log("Confiança:", probabilidade + "%");
-        console.log("Existe no catálogo?", catalogo[modeloEncontrado] ? "SIM" : "NÃO");
-        console.log("=============================================");
+        console.log("=================");
 
-        // DECISÃO FINAL
         if (maxProbability > confidenceThreshold) {
             modeloIdentificadoEl.innerText = `Modelo: ${modeloEncontrado} (${probabilidade}% de certeza)`;
             iniciarFluxoDeSelecao(modeloEncontrado);
         } else {
             resetInterface(`
-                Quase lá! Identifiquei <strong>${modeloEncontrado}</strong> mas com apenas ${probabilidade}% de certeza.<br>
-                Tente aproximar mais a câmera do produto.
+                Não tenho certeza absoluta (${probabilidade}%).<br>
+                Tente aproximar mais a câmera.
             `);
         }
     } catch (error) {
-         resetInterface('Erro técnico ao analisar a imagem.');
-         console.error("ERRO NA PREDIÇÃO:", error);
+         resetInterface('Erro ao analisar.');
+         console.error(error);
     }
 }
 
 // =================================================================
-// --- FUNÇÕES DE INTERFACE ---
+// --- INTERFACE ---
 // =================================================================
 
 function iniciarFluxoDeSelecao(nomeDoModelo) {
@@ -159,7 +151,7 @@ function iniciarFluxoDeSelecao(nomeDoModelo) {
     if (produto && produto.numeracoes) {
         criarSeletorDeTamanho(produto.numeracoes);
     } else {
-        codigoContainerEl.innerHTML = '<p class="erro">Modelo identificado, mas não cadastrado no banco de dados.</p>';
+        codigoContainerEl.innerHTML = '<p class="erro">Modelo não encontrado no catálogo.</p>';
     }
 }
 
@@ -167,17 +159,11 @@ function criarSeletorDeTamanho(numeracoes) {
     const tamanhosDisponiveis = Object.keys(numeracoes);
     const titulo = document.createElement('h3');
     titulo.innerText = 'Selecione o Tamanho:';
-    
     const selectElement = document.createElement('select');
-    selectElement.id = 'seletor-tamanho';
-
+    
     selectElement.onchange = function(event) {
-        const tamanhoSelecionado = event.target.value;
-        if (tamanhoSelecionado) {
-            exibirCodigoFinal(numeracoes[tamanhoSelecionado]);
-        } else {
-            codigoContainerEl.innerHTML = "";
-        }
+        if (event.target.value) exibirCodigoFinal(numeracoes[event.target.value]);
+        else codigoContainerEl.innerHTML = "";
     };
 
     const defaultOption = document.createElement('option');
@@ -198,23 +184,11 @@ function criarSeletorDeTamanho(numeracoes) {
 }
 
 function exibirCodigoFinal(codigoDeBarras) {
-    const titulo = '<h3>Código de Barras:</h3>';
-    const barcodeSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    barcodeSvg.id = 'barcode-final';
-
-    codigoContainerEl.innerHTML = titulo;
-    codigoContainerEl.appendChild(barcodeSvg);
-
+    codigoContainerEl.innerHTML = '<h3>Código de Barras:</h3><svg id="barcode-final"></svg>';
     try {
-        JsBarcode("#barcode-final", codigoDeBarras, {
-            format: "EAN13",
-            displayValue: true,
-            fontSize: 18,
-            margin: 10
-        });
+        JsBarcode("#barcode-final", codigoDeBarras, { format: "EAN13", displayValue: true, fontSize: 18, margin: 10 });
     } catch (e) {
-        console.error("Erro no código de barras:", e);
-        codigoContainerEl.innerHTML = '<p class="erro">Erro ao gerar código.</p>';
+        console.error(e);
     }
 }
 
