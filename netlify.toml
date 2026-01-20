@@ -1,9 +1,9 @@
     [[redirects]]
       from = "/api/model/*"
-      to = "https://teachablemachine.withgoogle.com/models/iXNypx5mp/:splat"
+      to = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/:splat"
       status = 200
 
     [[redirects]]
       from = "/api/metadata/*"
-      to = "https://teachablemachine.withgoogle.com/models/iXNypx5mp/:splat"
+      to = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/:splat"
       status = 200

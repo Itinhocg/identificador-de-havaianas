@@ -161,3 +161,22 @@ footer {
 .footer-nav a:hover {
     text-decoration: underline;
 }
+
+/* --- CORREÇÃO PARA ANÚNCIOS DO GOOGLE --- */
+
+/* Garante que o container do anúncio tenha tamanho mesmo vazio */
+ins.adsbygoogle {
+    display: block !important;
+    min-width: 300px;
+    min-height: 100px; /* Altura mínima para evitar erro de tamanho 0 */
+    width: 100%;
+    background-color: transparent; /* Apenas para teste, pode remover depois */
+}
+
+/* Garante que o container pai do anúncio no rodapé não esteja colapsado */
+footer, .anuncio-container {
+    min-height: 100px;
+    width: 100%;
+    display: block;
+    overflow: hidden; /* Evita que o anúncio "vaze" */
+}
