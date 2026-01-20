@@ -16,30 +16,34 @@ body {
     color: var(--text-color);
     background: linear-gradient(135deg, var(--background-start), var(--background-end));
     margin: 0;
-    padding: 1rem; /* Reduzido para melhor encaixe */
+    padding: 1rem; /* Margem segura geral */
     display: flex;
     flex-direction: column;
     align-items: center;
     min-height: 100vh;
     text-align: center;
+    box-sizing: border-box; /* Importante para o padding não estourar */
 }
 
 /* --- CABEÇALHO --- */
 header {
     margin-top: 1rem;
     margin-bottom: 2rem;
+    width: 100%;
 }
 
 header h1 {
-    font-size: 2.5rem;
+    font-size: 2.2rem; /* Levemente reduzido para caber melhor no mobile */
     font-weight: 700;
     color: var(--havaianas-blue);
     text-shadow: 1px 1px 2px var(--shadow-color);
+    margin: 0;
 }
 
 header p {
     font-size: 1.1rem;
     color: var(--text-color);
+    margin-top: 0.5rem;
 }
 
 /* --- ÁREA PRINCIPAL E BOTÃO --- */
@@ -50,8 +54,44 @@ main {
     box-shadow: 0 10px 30px var(--shadow-color);
     width: 100%;
     max-width: 500px;
+    box-sizing: border-box; /* Garante que o padding fique dentro da largura */
 }
 
+/* --- CORREÇÃO: Estilo específico para Páginas de Conteúdo (Sobre, Dicas, etc) --- */
+/* Isso resolve o problema da tela "Sobre" estar desajustada */
+main.content-page {
+    text-align: left; /* Texto alinhado à esquerda para leitura */
+    max-width: 800px; /* Largura maior para leitura confortável */
+    margin: 0 auto;   /* Centraliza na tela */
+    width: 95%;       /* Ocupa quase toda a largura no celular */
+    padding: 2rem;    /* Espaço interno generoso */
+}
+
+main.content-page h2 {
+    color: var(--havaianas-blue);
+    margin-top: 0;
+}
+
+main.content-page p {
+    line-height: 1.6; /* Melhor legibilidade */
+    margin-bottom: 1.5rem;
+}
+
+main.content-page img {
+    max-width: 100%; /* Imagens nunca estouram a tela */
+    height: auto;
+    border-radius: 8px;
+}
+
+.back-link { 
+    display: inline-block; 
+    margin-top: 2rem; 
+    font-weight: 600; 
+    color: var(--havaianas-blue); 
+    text-decoration: none; 
+}
+
+/* --- BOTÃO E PREVIEW --- */
 .botao {
     background-color: var(--havaianas-blue);
     color: white;
@@ -64,6 +104,8 @@ main {
     cursor: pointer;
     transition: all 0.3s ease;
     display: inline-block;
+    width: 100%; /* Botão ocupa toda largura no mobile */
+    max-width: 300px;
 }
 
 .botao:hover {
@@ -73,21 +115,34 @@ main {
 }
 
 #imagem-preview {
+    max-width: 100%; /* Garante que a imagem não estoure */
+    height: auto;
     border-radius: 10px;
     border: 3px solid #eee;
     margin-top: 1rem;
+    display: none; /* Começa escondida */
 }
 
 /* --- ÁREA DE RESULTADOS --- */
 #resultado-area {
     margin-top: 2rem;
+    width: 100%; /* Garante alinhamento */
 }
 
+/* --- CORREÇÃO: Quebra de Texto para Nomes Longos --- */
 #modelo-identificado {
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 1.2rem;
+    font-weight: bold;
     color: var(--havaianas-blue);
-    min-height: 50px;
+    margin: 1rem 0;
+    
+    /* Configurações para quebrar texto longo */
+    white-space: normal;       
+    word-wrap: break-word;     
+    overflow-wrap: break-word; 
+    word-break: break-word; /* Usar break-word é mais seguro que break-all */
+    hyphens: auto;          /* Adiciona hífen se necessário */
+    max-width: 100%;           
 }
 
 /* --- ELEMENTOS INTERATIVOS --- */
@@ -99,12 +154,13 @@ main {
 
 #seletor-tamanho {
     font-family: 'Poppins', sans-serif;
-    padding: 10px;
+    padding: 12px; /* Área de toque maior */
     font-size: 1rem;
     border-radius: 8px;
     border: 2px solid #ddd;
     width: 100%;
     cursor: pointer;
+    background-color: white;
 }
 
 #codigo-container #barcode-final {
@@ -112,6 +168,8 @@ main {
     padding: 1rem;
     border-radius: 8px;
     margin-top: 1rem;
+    max-width: 100%; /* SVG responsivo */
+    height: auto;
 }
 
 .erro {
@@ -119,22 +177,27 @@ main {
     background-color: #FFD2D2;
     padding: 1rem;
     border-radius: 8px;
+    word-wrap: break-word; /* Erros longos também quebram */
 }
 
 /* --- Estilos para os containers de anúncio --- */
 #anuncio-cabecalho, #anuncio-rodape {
     width: 100%;
-    max-width: 800px; /* Limita a largura do anúncio em telas grandes */
-    min-height: 50px;
+    max-width: 800px; 
+    min-height: 100px; /* Aumentado para evitar erro do Google */
     margin: 1rem 0;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden; /* Evita scroll horizontal */
 }
 
+/* --- RODAPÉ --- */
 footer {
     width: 100%;
     text-align: center;
+    margin-top: auto; /* Empurra rodapé para baixo se pouco conteúdo */
+    padding-bottom: 2rem;
 }
 
 .link-politica {
@@ -145,38 +208,65 @@ footer {
     display: inline-block;
 }
 
-.link-politica:hover {
-    text-decoration: underline;
-}
-
 .footer-nav {
     margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap; /* Permite que links quebrem linha no mobile */
+    justify-content: center;
+    gap: 10px; /* Espaço entre links */
 }
+
 .footer-nav a {
     color: #555;
     text-decoration: none;
-    margin: 0 10px;
     font-size: 0.9rem;
-}
-.footer-nav a:hover {
-    text-decoration: underline;
+    padding: 5px; /* Área de clique melhor */
 }
 
 /* --- CORREÇÃO PARA ANÚNCIOS DO GOOGLE --- */
-
-/* Garante que o container do anúncio tenha tamanho mesmo vazio */
 ins.adsbygoogle {
     display: block !important;
     min-width: 300px;
-    min-height: 100px; /* Altura mínima para evitar erro de tamanho 0 */
+    min-height: 100px; 
     width: 100%;
-    background-color: transparent; /* Apenas para teste, pode remover depois */
+    background-color: transparent; 
 }
 
-/* Garante que o container pai do anúncio no rodapé não esteja colapsado */
-footer, .anuncio-container {
-    min-height: 100px;
-    width: 100%;
+/* --- MEDIA QUERIES (Ajustes finos para Celular) --- */
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.8rem; /* Título menor no celular */
+    }
+    
+    main {
+        padding: 1.5rem 1rem; /* Menos padding lateral para aproveitar espaço */
+    }
+    
+    #modelo-identificado {
+        font-size: 1.1rem; /* Fonte ajustada para nomes longos */
+    }
+}
+
+/* --- ESTILO DA FOTO REFERÊNCIA (O MOSAICO) --- */
+.foto-referencia {
+    width: 150px;       /* Tamanho fixo para não ficar gigante */
+    height: 150px;      
+    object-fit: cover;  /* Corta a imagem para caber no quadrado sem esticar */
+    border-radius: 12px;
+    border: 3px solid var(--havaianas-blue); /* Borda azul da marca */
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    margin-bottom: 0.5rem;
     display: block;
-    overflow: hidden; /* Evita que o anúncio "vaze" */
+    margin-left: auto;
+    margin-right: auto; /* Centraliza */
+}
+
+/* Animação suave ao aparecer */
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
 }

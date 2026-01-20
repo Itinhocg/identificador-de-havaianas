@@ -2,9 +2,14 @@
 // --- CONFIGURAÇÕES DO PROJETO ---
 // =================================================================
 
-// 1. URL do modelo
-const MODEL_URL = "/api/model/model.json";
-const METADATA_URL = "/api/metadata/metadata.json";
+// 🔴 MODO PRODUÇÃO (NETLIFY) - Descomente esta linha antes de fazer Deploy
+// const MODEL_URL = "/api/model/model.json";
+// const METADATA_URL = "/api/metadata/metadata.json";
+
+// 🟢 MODO LOCAL (VS CODE / GO LIVE) - Use esta para testar no PC
+// (Cole aqui o link original que o Teachable Machine te deu)
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/model.json";
+const METADATA_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/metadata.json";
 
 // 2. Configurações do Firebase
 const firebaseConfig = {
@@ -51,7 +56,11 @@ async function iniciar() {
 
         catalogoSnapshot.forEach(doc => {
             const modelo = doc.data();
-            catalogo[modelo.nomeModelo] = { numeracoes: modelo.numeracoes };
+            // --- ATUALIZAÇÃO: Agora guardamos também a imagemUrl ---
+            catalogo[modelo.nomeModelo] = { 
+                numeracoes: modelo.numeracoes,
+                imagemUrl: modelo.imagemUrl // <--- NOVO CAMPO
+            };
         });
 
         modeloIdentificadoEl.innerText = 'Tudo pronto! Por favor, tire uma foto.';
@@ -64,7 +73,7 @@ async function iniciar() {
 }
 
 // =================================================================
-// --- PROCESSAMENTO DA IMAGEM (A CORREÇÃO ESTÁ AQUI) ---
+// --- PROCESSAMENTO DA IMAGEM ---
 // =================================================================
 
 async function handleImageUpload(event) {
@@ -85,29 +94,24 @@ async function handleImageUpload(event) {
 
 async function processarPredicao(imagem) {
     try {
-        // 1. Converte imagem para Tensor
         let tensor = tf.browser.fromPixels(imagem);
 
-        // 2. CORTE CENTRAL (CROP)
         const [height, width] = tensor.shape;
         const shorterSide = Math.min(height, width);
         const startingHeight = (height - shorterSide) / 2;
         const startingWidth = (width - shorterSide) / 2;
 
-        // 3. PROCESSAMENTO COMPLETO: CORTAR -> REDIMENSIONAR -> NORMALIZAR
         tensor = tensor
-            .slice([startingHeight, startingWidth, 0], [shorterSide, shorterSide, 3]) // Corta o quadrado
-            .resizeBilinear([224, 224]) // Redimensiona
+            .slice([startingHeight, startingWidth, 0], [shorterSide, shorterSide, 3])
+            .resizeBilinear([224, 224])
             .toFloat()
-            .div(tf.scalar(127.5)) // <--- A MÁGICA: Divide por 127.5
-            .sub(tf.scalar(1))     // <--- A MÁGICA: Subtrai 1 (Resultado fica entre -1 e 1)
+            .div(tf.scalar(127.5))
+            .sub(tf.scalar(1))
             .expandDims();
 
-        // 4. Predição
         const predictions = await model.predict(tensor).data();
         tensor.dispose();
 
-        // 5. Encontrar melhor resultado
         let maxProbability = 0;
         let predictedClassIndex = -1;
         for (let i = 0; i < predictions.length; i++) {
@@ -117,11 +121,10 @@ async function processarPredicao(imagem) {
             }
         }
 
-        const confidenceThreshold = 0.70; // VOLTAMOS PARA 70% (AGORA VAI FUNCIONAR)
+        const confidenceThreshold = 0.70;
         const modeloEncontrado = metadata.labels[predictedClassIndex];
         const probabilidade = (maxProbability * 100).toFixed(0);
 
-        // DIAGNÓSTICO
         console.log("=== RESULTADO ===");
         console.log("Modelo:", modeloEncontrado);
         console.log("Confiança:", probabilidade + "%");
@@ -143,13 +146,41 @@ async function processarPredicao(imagem) {
 }
 
 // =================================================================
-// --- INTERFACE ---
+// --- INTERFACE (LÓGICA DA FOTO REFERÊNCIA ADICIONADA) ---
 // =================================================================
 
 function iniciarFluxoDeSelecao(nomeDoModelo) {
     const produto = catalogo[nomeDoModelo];
-    if (produto && produto.numeracoes) {
-        criarSeletorDeTamanho(produto.numeracoes);
+    
+    // Limpa containers antigos
+    tamanhoContainerEl.innerHTML = "";
+    codigoContainerEl.innerHTML = "";
+
+    if (produto) {
+        // --- NOVO: Exibe a Foto Referência (Se existir no Firebase) ---
+        if (produto.imagemUrl) {
+            const imgContainer = document.createElement('div');
+            imgContainer.style.textAlign = "center";
+            imgContainer.style.marginBottom = "1rem";
+
+            const imgReferencia = document.createElement('img');
+            imgReferencia.src = produto.imagemUrl;
+            imgReferencia.className = 'foto-referencia fade-in'; // Usa a classe CSS nova
+            imgReferencia.alt = `Foto referência ${nomeDoModelo}`;
+            
+            const txtConfirmacao = document.createElement('p');
+            txtConfirmacao.innerHTML = "<small>👆 O modelo é igual a este?</small>";
+            txtConfirmacao.style.color = "#555";
+            txtConfirmacao.style.marginTop = "0.5rem";
+
+            imgContainer.appendChild(imgReferencia);
+            imgContainer.appendChild(txtConfirmacao);
+            tamanhoContainerEl.appendChild(imgContainer);
+        }
+
+        if (produto.numeracoes) {
+            criarSeletorDeTamanho(produto.numeracoes);
+        }
     } else {
         codigoContainerEl.innerHTML = '<p class="erro">Modelo não encontrado no catálogo.</p>';
     }
@@ -157,10 +188,13 @@ function iniciarFluxoDeSelecao(nomeDoModelo) {
 
 function criarSeletorDeTamanho(numeracoes) {
     const tamanhosDisponiveis = Object.keys(numeracoes);
+    
     const titulo = document.createElement('h3');
     titulo.innerText = 'Selecione o Tamanho:';
-    const selectElement = document.createElement('select');
     
+    const selectElement = document.createElement('select');
+    selectElement.id = 'seletor-tamanho';
+
     selectElement.onchange = function(event) {
         if (event.target.value) exibirCodigoFinal(numeracoes[event.target.value]);
         else codigoContainerEl.innerHTML = "";
@@ -178,7 +212,7 @@ function criarSeletorDeTamanho(numeracoes) {
         selectElement.appendChild(optionElement);
     }
 
-    tamanhoContainerEl.innerHTML = '';
+    // --- ATENÇÃO: Usamos appendChild para NÃO apagar a foto inserida antes ---
     tamanhoContainerEl.appendChild(titulo);
     tamanhoContainerEl.appendChild(selectElement);
 }
