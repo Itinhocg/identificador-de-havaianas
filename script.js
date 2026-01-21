@@ -7,7 +7,6 @@ const MODEL_URL = "/api/model/model.json";
 const METADATA_URL = "/api/metadata/metadata.json";
 
 // 🟢 MODO LOCAL (VS CODE / GO LIVE) - Use esta para testar no PC
-// (Cole aqui o link original que o Teachable Machine te deu)
 // const MODEL_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/model.json";
 // const METADATA_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/metadata.json";
 
@@ -56,10 +55,9 @@ async function iniciar() {
 
         catalogoSnapshot.forEach(doc => {
             const modelo = doc.data();
-            // --- ATUALIZAÇÃO: Agora guardamos também a imagemUrl ---
             catalogo[modelo.nomeModelo] = { 
                 numeracoes: modelo.numeracoes,
-                imagemUrl: modelo.imagemUrl // <--- NOVO CAMPO
+                imagemUrl: modelo.imagemUrl
             };
         });
 
@@ -126,12 +124,23 @@ async function processarPredicao(imagem) {
         const probabilidade = (maxProbability * 100).toFixed(0);
 
         console.log("=== RESULTADO ===");
-        console.log("Modelo:", modeloEncontrado);
+        console.log("Modelo Original:", modeloEncontrado);
         console.log("Confiança:", probabilidade + "%");
         console.log("=================");
 
         if (maxProbability > confidenceThreshold) {
-            modeloIdentificadoEl.innerText = `Modelo: ${modeloEncontrado} (${probabilidade}% de certeza)`;
+            // Remove o prefixo visualmente
+            const nomeVisual = modeloEncontrado.replace('SAND.HAV.', '');
+            
+            // --- AQUI ESTÁ A MUDANÇA ---
+            // Usamos innerHTML para colocar o <br> (quebra de linha)
+            // Deixei o nome em Negrito (<strong>) e a porcentagem menor (<small>)
+            modeloIdentificadoEl.innerHTML = `
+                Modelo: <strong>${nomeVisual}</strong><br>
+                <small style="color: #555;">(${probabilidade}% de certeza)</small>
+            `;
+            
+            // Continua o fluxo com o nome ORIGINAL
             iniciarFluxoDeSelecao(modeloEncontrado);
         } else {
             resetInterface(`
@@ -146,18 +155,16 @@ async function processarPredicao(imagem) {
 }
 
 // =================================================================
-// --- INTERFACE (LÓGICA DA FOTO REFERÊNCIA ADICIONADA) ---
+// --- INTERFACE (BOTÕES SIM/NÃO + ORDENAÇÃO) ---
 // =================================================================
 
 function iniciarFluxoDeSelecao(nomeDoModelo) {
     const produto = catalogo[nomeDoModelo];
     
-    // Limpa containers antigos
     tamanhoContainerEl.innerHTML = "";
     codigoContainerEl.innerHTML = "";
 
     if (produto) {
-        // --- NOVO: Exibe a Foto Referência (Se existir no Firebase) ---
         if (produto.imagemUrl) {
             const imgContainer = document.createElement('div');
             imgContainer.style.textAlign = "center";
@@ -165,35 +172,87 @@ function iniciarFluxoDeSelecao(nomeDoModelo) {
 
             const imgReferencia = document.createElement('img');
             imgReferencia.src = produto.imagemUrl;
-            imgReferencia.className = 'foto-referencia fade-in'; // Usa a classe CSS nova
-            imgReferencia.alt = `Foto referência ${nomeDoModelo}`;
+            imgReferencia.className = 'foto-referencia fade-in';
+            imgReferencia.alt = `Foto referência`;
             
-            const txtConfirmacao = document.createElement('p');
-            txtConfirmacao.innerHTML = "<small>👆 O modelo é igual a este?</small>";
-            txtConfirmacao.style.color = "#555";
-            txtConfirmacao.style.marginTop = "0.5rem";
+            const txtPergunta = document.createElement('p');
+            txtPergunta.innerText = "O modelo é igual a este?";
+            txtPergunta.style.fontWeight = "bold";
+            txtPergunta.style.margin = "10px 0";
+            txtPergunta.style.color = "#333";
+
+            const divBotoes = document.createElement('div');
+            divBotoes.className = 'container-botoes';
+
+            const btnSim = document.createElement('button');
+            btnSim.innerText = "SIM ✅";
+            btnSim.className = 'btn-sim';
+            
+            const btnNao = document.createElement('button');
+            btnNao.innerText = "NÃO ❌";
+            btnNao.className = 'btn-nao';
+
+            btnNao.onclick = function() {
+                resetInterface(`
+                    Sem problemas! Vamos tentar de novo.<br>
+                    <strong>Dica:</strong> Aproxime a câmera e evite sombras.
+                `);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            };
+
+            btnSim.onclick = function() {
+                txtPergunta.remove();
+                divBotoes.remove();
+                
+                const sucesso = document.createElement('p');
+                sucesso.innerHTML = "Confirmado! ✅ Agora escolha o tamanho:";
+                sucesso.style.color = "green";
+                imgContainer.appendChild(sucesso);
+
+                criarSeletorDeTamanho(produto.numeracoes);
+            };
+
+            divBotoes.appendChild(btnNao);
+            divBotoes.appendChild(btnSim);
 
             imgContainer.appendChild(imgReferencia);
-            imgContainer.appendChild(txtConfirmacao);
+            imgContainer.appendChild(txtPergunta);
+            imgContainer.appendChild(divBotoes);
+            
             tamanhoContainerEl.appendChild(imgContainer);
-        }
 
-        if (produto.numeracoes) {
+        } else {
             criarSeletorDeTamanho(produto.numeracoes);
         }
+
     } else {
         codigoContainerEl.innerHTML = '<p class="erro">Modelo não encontrado no catálogo.</p>';
     }
 }
 
 function criarSeletorDeTamanho(numeracoes) {
-    const tamanhosDisponiveis = Object.keys(numeracoes);
-    
-    const titulo = document.createElement('h3');
-    titulo.innerText = 'Selecione o Tamanho:';
+    let tamanhosDisponiveis = Object.keys(numeracoes);
+
+    tamanhosDisponiveis.sort((a, b) => {
+        const extrairNumero = (texto) => {
+            const numero = texto.split('/')[0]; 
+            return parseInt(numero, 10) || 0;
+        };
+        const numA = extrairNumero(a);
+        const numB = extrairNumero(b);
+        return numA - numB;
+    });
+
+    if (!document.querySelector('#titulo-tamanho')) {
+        const titulo = document.createElement('h3');
+        titulo.id = 'titulo-tamanho';
+        titulo.innerText = 'Selecione o Tamanho:';
+        tamanhoContainerEl.appendChild(titulo);
+    }
     
     const selectElement = document.createElement('select');
     selectElement.id = 'seletor-tamanho';
+    selectElement.style.marginTop = "10px";
 
     selectElement.onchange = function(event) {
         if (event.target.value) exibirCodigoFinal(numeracoes[event.target.value]);
@@ -202,7 +261,7 @@ function criarSeletorDeTamanho(numeracoes) {
 
     const defaultOption = document.createElement('option');
     defaultOption.value = "";
-    defaultOption.innerText = 'Escolha uma opção...';
+    defaultOption.innerText = 'Toque para escolher...';
     selectElement.appendChild(defaultOption);
 
     for (const tamanho of tamanhosDisponiveis) {
@@ -212,8 +271,6 @@ function criarSeletorDeTamanho(numeracoes) {
         selectElement.appendChild(optionElement);
     }
 
-    // --- ATENÇÃO: Usamos appendChild para NÃO apagar a foto inserida antes ---
-    tamanhoContainerEl.appendChild(titulo);
     tamanhoContainerEl.appendChild(selectElement);
 }
 
