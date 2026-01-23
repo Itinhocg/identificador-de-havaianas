@@ -3,12 +3,12 @@
 // =================================================================
 
 // 🔴 MODO PRODUÇÃO (NETLIFY) - Descomente esta linha antes de fazer Deploy
-const MODEL_URL = "/api/model/model.json";
-const METADATA_URL = "/api/metadata/metadata.json";
+// const MODEL_URL = "/api/model/model.json";
+// const METADATA_URL = "/api/metadata/metadata.json";
 
 // 🟢 MODO LOCAL (VS CODE / GO LIVE) - Use esta para testar no PC
-// const MODEL_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/model.json";
-// const METADATA_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/metadata.json";
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/model.json";
+const METADATA_URL = "https://teachablemachine.withgoogle.com/models/r50xjWIGo/metadata.json";
 
 // 2. Configurações do Firebase
 const firebaseConfig = {
